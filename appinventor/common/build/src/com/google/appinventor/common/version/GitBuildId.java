@@ -14,9 +14,9 @@ package com.google.appinventor.common.version;
 public final class GitBuildId {
 
   // The following values are set during the ant build.
-  public static final String GIT_BUILD_VERSION = "nls-611-g9823cb4-dirty";
-  public static final String GIT_BUILD_FINGERPRINT = "9823cb4986827f0a40f792c47b0e94a9b4afc516";
-  public static final String ANT_BUILD_DATE = "February 18 2015";
+  public static final String GIT_BUILD_VERSION = "fatal: No names found, cannot describe anything.";
+  public static final String GIT_BUILD_FINGERPRINT = "ad0290a30b18a80c40d5e191ae59cd5635af60f9";
+  public static final String ANT_BUILD_DATE = "February 19 2015";
   public static final String ACRA_URI = "${acra.uri}";
 
   private GitBuildId() {

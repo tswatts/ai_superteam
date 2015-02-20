@@ -523,6 +523,9 @@ public final class YoungAndroidProjectService extends CommonProjectService {
     String projectName = storageIo.getProjectName(userId, projectId);
     String outputFileDir = BUILD_FOLDER + '/' + target;
 
+
+    LOG.info("*************outputFileDir=" + outputFileDir);
+
     // Store the userId and projectId based on the nonce
 
     storageIo.storeNonce(nonce, userId, projectId);
@@ -556,6 +559,7 @@ public final class YoungAndroidProjectService extends CommonProjectService {
 
       int responseCode = 0;
       responseCode = connection.getResponseCode();
+      LOG.info("***************Build:" + responseCode);
       if (responseCode != HttpURLConnection.HTTP_OK) {
         // Put the HTTP response code into the RpcResult so the client code in BuildCommand.java
         // can provide an appropriate error message to the user.
@@ -649,15 +653,18 @@ public final class YoungAndroidProjectService extends CommonProjectService {
   public RpcResult buildEclipseProject(User user, long projectId, String nonce, String target, int buildOption) {
     String userId = user.getUserId();
     String projectName = storageIo.getProjectName(userId, projectId);
-    String outputFileDir = null; 
+    String outputFileDir = BUILD_FOLDER + '/' + target;
+
+    //String outputFileDir = null; 
     
     storageIo.storeNonce(nonce, userId, projectId);
 
-    if(buildOption == 1) 
+    /*if(buildOption == 1) 
       outputFileDir = ECLIPSE_PROJECT_FOLDER + '/' + target;
     else
       outputFileDir = JAVA_SOURCES_FOLDER + '/' + target; 
-    
+    */
+    LOG.info("*************outputFileDir=" + outputFileDir);
     // Delete the existing build output files, if any, so that future attempts to get it won't get
     // old versions.
     if(buildOption == 1) {
@@ -685,6 +692,8 @@ public final class YoungAndroidProjectService extends CommonProjectService {
       connection.setDoOutput(true);
       connection.setRequestMethod("POST");
 
+      LOG.info("********* connection:" + connection.getResponseCode());
+
       BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(connection.getOutputStream());
       FileExporter fileExporter = new FileExporterImpl();
       zipFile = fileExporter.exportProjectSourceZip(userId, projectId, false,
@@ -700,6 +709,9 @@ public final class YoungAndroidProjectService extends CommonProjectService {
       } catch (IOException e) {
           throw new CouldNotFetchException();
       }
+
+      LOG.info("***************BuildECLIPSE:" + responseCode);
+
       if (responseCode != HttpURLConnection.HTTP_OK) {
         // Put the HTTP response code into the RpcResult so the client code in BuildCommand.java
         // can provide an appropriate error message to the user.

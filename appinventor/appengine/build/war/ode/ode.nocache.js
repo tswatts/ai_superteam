@@ -345,16 +345,16 @@ function ode(){
   $stats && $stats({moduleName:'ode', sessionId:$sessionId_0, subSystem:'startup', evtGroup:'bootstrap', millis:(new Date).getTime(), type:'selectingPermutation'});
   if (!isHostedMode()) {
     try {
-      unflattenKeylistIntoAnswers(['es_ES', 'safari'], '1E1909D8CF593D8337B2F34744AF9053');
-      unflattenKeylistIntoAnswers(['en', 'safari'], '1EF44E2D7A7B597D1BB76A54D1E49AC9');
-      unflattenKeylistIntoAnswers(['zh_TW', 'gecko1_8'], '62FE25709DA55C7D3D5ED7900E0519EE');
-      unflattenKeylistIntoAnswers(['en', 'gecko1_8'], 'B5413A5642FF9BD50BB167FB23523194');
-      unflattenKeylistIntoAnswers(['zh_CN', 'safari'], 'B5D6A5E79BFA11825E5AD59D2688F592');
-      unflattenKeylistIntoAnswers(['default', 'safari'], 'C336E686B37AE1B641E8D9CD90F46B51');
-      unflattenKeylistIntoAnswers(['zh_CN', 'gecko1_8'], 'D114F6A93E88810AECB6F93232476D70');
-      unflattenKeylistIntoAnswers(['zh_TW', 'safari'], 'E1471BC719DD04DE420591BE889F1C1E');
-      unflattenKeylistIntoAnswers(['default', 'gecko1_8'], 'E4604FB310D5DE1AE10A075F50F64649');
-      unflattenKeylistIntoAnswers(['es_ES', 'gecko1_8'], 'EDA865BDD5AF9C063F99612AD15E12AC');
+      unflattenKeylistIntoAnswers(['es_ES', 'safari'], '0D8993BC0DAC9C9CA3581634AE263478');
+      unflattenKeylistIntoAnswers(['zh_CN', 'safari'], '258CBA1A084DB43EFEA0EF355CAF55DF');
+      unflattenKeylistIntoAnswers(['es_ES', 'gecko1_8'], '2E2EAEDEA30512381EDDCD611AFB9909');
+      unflattenKeylistIntoAnswers(['zh_CN', 'gecko1_8'], '55BA404F5BD52A3C044B580CA7659D3E');
+      unflattenKeylistIntoAnswers(['default', 'gecko1_8'], '5D42B2D03F8B14F15E5803A477524710');
+      unflattenKeylistIntoAnswers(['zh_TW', 'safari'], '5E1FBC45690F78471F0BC2F7D423A6D1');
+      unflattenKeylistIntoAnswers(['default', 'safari'], '6A338B862130E731CC91A51B29ED3DAC');
+      unflattenKeylistIntoAnswers(['en', 'safari'], 'AF16FC7B8C74BC4FC1F73B9A9626FEE4');
+      unflattenKeylistIntoAnswers(['en', 'gecko1_8'], 'CDB56E9F51F3BC15131E52000277C610');
+      unflattenKeylistIntoAnswers(['zh_TW', 'gecko1_8'], 'E6831BE2C67C6CFE6D3A6B760AA84774');
       strongName = answers[computePropValue('locale')][computePropValue('user.agent')];
       var idx = strongName.indexOf(':');
       if (idx != -1) {

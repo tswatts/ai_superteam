@@ -353,7 +353,131 @@ public class BuildServer {
       cleanUp();
     }
   }
+@POST
+  @Path("build-eclipse-project-from-zip-async")
+  @Produces(MediaType.TEXT_PLAIN)
+  public Response buildEclipseProjectFromZipAsync(
+    @QueryParam("uname") final String userName,
+    @QueryParam("callback") final String callbackUrlStr,
+    @QueryParam("buildOption") final int buildOption,
+    @QueryParam("gitBuildVersion") final String gitBuildVersion,
+    final File inputZipFile) throws IOException {
+    // Set the inputZip field so we can delete the input zip file later in
+    // cleanUp.
+    inputZip = inputZipFile;
+    inputZip.deleteOnExit(); // In case build server is killed before cleanUp executes.
+    String requesting_host = (new URL(callbackUrlStr)).getHost();
 
+    //for the request for update part, the file should be empty
+    if (inputZip.length() == 0L) {
+      cleanUp();
+    } else {
+      if (commandLineOptions.requiredHosts != null) {
+        boolean oktoproceed = false;
+        for (String host : commandLineOptions.requiredHosts) {
+          if (host.equals(requesting_host)) {
+            oktoproceed = true;
+            break;}
+        }
+
+        if (oktoproceed) {
+          LOG.info("requesting host (" + requesting_host + ") is in the allowed host list request will be honored.");
+        } else {
+          // Return an error
+          LOG.info("requesting host (" + requesting_host + ") is NOT in the allowed host list request will be rejected.");
+          return Response.status(Response.Status.FORBIDDEN).type(MediaType.TEXT_PLAIN_TYPE).entity("You are not permitted to use this build server.").build();
+        }
+      } else {
+        LOG.info("requiredHosts is not set, no restriction on callback url.");
+      }
+
+      asyncEclipseBuildRequests.incrementAndGet();
+
+      if (gitBuildVersion != null && !gitBuildVersion.isEmpty()) {
+        if (!gitBuildVersion.equals(GitBuildId.getVersion())) {
+          // This build server is not compatible with the App Inventor instance. Log this as severe
+          // so the owner of the build server will know about it.
+          String errorMessage = "Build server version " + GitBuildId.getVersion() +
+            " is not compatible with App Inventor version " + gitBuildVersion + ".";
+          LOG.severe(errorMessage);
+          // This request was rejected because the gitBuildVersion parameter did not equal the
+          // expected value.
+          rejectedAsyncEclipseBuildRequests.incrementAndGet();
+          cleanUp();
+          // Here, we use CONFLICT (response code 409), which means (according to rfc2616, section
+          // 10) "The request could not be completed due to a conflict with the current state of the
+          // resource."
+          return Response.status(Response.Status.CONFLICT).type(MediaType.TEXT_PLAIN_TYPE).entity(errorMessage).build();
+        }
+      }
+
+      Runnable buildTask = new Runnable() {
+          @Override
+          public void run() {
+            int count = buildCount.incrementAndGet();
+            try {
+              LOG.info("START NEW BUILD " + count);
+              checkMemory();
+              
+              buildEclipseProjectAndCreateZip(userName, inputZipFile, buildOption);
+
+              // Send zip back to the callbackUrl
+              LOG.info("CallbackURL: " + callbackUrlStr);
+              URL callbackUrl = new URL(callbackUrlStr);
+              HttpURLConnection connection = (HttpURLConnection) callbackUrl.openConnection();
+              connection.setDoOutput(true);
+              connection.setRequestMethod("POST");
+              // Make sure we aren't misinterpreted as
+              // form-url-encoded
+              connection.addRequestProperty("Content-Type","application/zip; charset=utf-8");
+              connection.setConnectTimeout(60000);
+              connection.setReadTimeout(60000);
+              BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(connection.getOutputStream());
+              try {
+                BufferedInputStream bufferedInputStream = new BufferedInputStream(
+                  new FileInputStream(outputZip));
+                try {
+                  ByteStreams.copy(bufferedInputStream,bufferedOutputStream);
+                  checkMemory();
+                  bufferedOutputStream.flush();
+                } finally {
+                  bufferedInputStream.close();
+                }
+              } finally {
+                bufferedOutputStream.close();
+              }
+              if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {LOG.severe("Bad Response Code!: "+ connection.getResponseCode());
+                // TODO(user) Maybe do some retries
+              }
+            } catch (Exception e) {
+              // TODO(user): Maybe send a failure callback
+              LOG.severe("Exception: " + e.getMessage()+ " and the length is of inputZip is "+ inputZip.length());
+            } finally {
+              cleanUp();
+              checkMemory();
+              LOG.info("BUILD " + count + " FINISHED");
+            }
+          }
+        };
+      try {
+        buildExecutor.execute(buildTask);
+      } catch (RejectedExecutionException e) {
+        // This request was rejected because all threads in the build
+        // executor are busy.
+        rejectedAsyncEclipseBuildRequests.incrementAndGet();
+        cleanUp();
+        // Here, we use SERVICE_UNAVAILABLE (response code 503), which
+        // means (according to rfc2616, section 10) "The server is
+        // currently unable to handle the request due to a temporary
+        // overloading or maintenance of the server. The implication
+        // is that this is a temporary condition which will be
+        // alleviated after some delay."
+        return Response.status(Response.Status.SERVICE_UNAVAILABLE).type(MediaType.TEXT_PLAIN_TYPE).entity("The build server is currently at maximum capacity.").build();
+      }
+    }
+    return Response.ok().type(MediaType.TEXT_PLAIN_TYPE)
+      .entity("" + ProjectBuilder.getEclipseBuildStatus()).build();
+  }
   /**
    * Asynchronously build an APK file from the input zip file and then send it to the callbackUrl.
    * The input zip file needs to be a variant of the same App Inventor source zip that's generated
