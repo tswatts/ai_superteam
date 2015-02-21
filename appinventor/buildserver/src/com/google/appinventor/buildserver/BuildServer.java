@@ -110,12 +110,25 @@ public class BuildServer {
     new MediaType("application", "zip", ImmutableMap.of("charset", "utf-8"));
 
   private static final AtomicInteger buildCount = new AtomicInteger(0);
+  private static final AtomicInteger eclipseBuildCount = new AtomicInteger(0);
 
   // The number of build requests for this server run
   private static final AtomicInteger asyncBuildRequests = new AtomicInteger(0);
 
   // The number of rejected build requests for this server run
   private static final AtomicInteger rejectedAsyncBuildRequests = new AtomicInteger(0);
+
+  // The number of build requests for this server run
+  private static final AtomicInteger asyncEclipseBuildRequests = new AtomicInteger(0);
+
+  // The number of rejected build requests for this server run
+  private static final AtomicInteger rejectedAsyncEclipseBuildRequests = new AtomicInteger(0);
+
+  //The number of successful build requests for this server run
+  private static final AtomicInteger successfulEclipseBuildRequests = new AtomicInteger(0);
+
+  //The number of failed build requests for this server run
+  private static final AtomicInteger failedEclipseBuildRequests = new AtomicInteger(0);
 
   //The number of successful build requests for this server run
   private static final AtomicInteger successfulBuildRequests = new AtomicInteger(0);
@@ -137,6 +150,9 @@ public class BuildServer {
 
   // The built APK file for this build request, if any.
   private File outputApk;
+
+  // The built Eclipse project zip file for this build request, if any.
+  private File outputEclipseZip;
 
   // The temp directory that we're building in.
   private File outputDir;
@@ -661,6 +677,34 @@ public class BuildServer {
     zipOutputStream.close();
   }
 
+  private void buildEclipseProjectAndCreateZip(String userName, File inputZipFile, int buildOption)
+      throws IOException, JSONException {
+    Result buildResult = buildEclipseProject(userName, inputZipFile, buildOption);
+    boolean buildSucceeded = buildResult.succeeded();
+    outputZip = File.createTempFile(inputZipFile.getName(), ".zip");
+    outputZip.deleteOnExit(); // In case build server is killed before
+                  // cleanUp executes.
+    ZipOutputStream zipOutputStream = new ZipOutputStream(
+        new BufferedOutputStream(new FileOutputStream(outputZip)));
+    if (buildSucceeded) {
+      zipOutputStream.putNextEntry(new ZipEntry(outputEclipseZip.getName()));
+      Files.copy(outputEclipseZip, zipOutputStream);
+      successfulEclipseBuildRequests.getAndIncrement();
+    } else {
+      LOG.severe("Build Eclipse Project " + eclipseBuildCount.get() + " Failed: "
+          + buildResult.getResult() + " " + buildResult.getError());
+      failedEclipseBuildRequests.getAndIncrement();
+    }
+    zipOutputStream.putNextEntry(new ZipEntry("build.out"));
+    String buildOutputJson = genBuildOutput(buildResult);
+    PrintStream zipPrintStream = new PrintStream(zipOutputStream);
+    zipPrintStream.print(buildOutputJson);
+    zipPrintStream.flush();
+    zipOutputStream.flush();
+    zipOutputStream.close();
+  } 
+
+
   private String genBuildOutput(Result buildResult) throws JSONException {
     JSONObject buildOutputJsonObj = new JSONObject();
     buildOutputJsonObj.put("result", buildResult.getResult());
@@ -696,6 +740,31 @@ public class BuildServer {
     checkMemory();
     return buildResult;
   }
+
+  private Result buildEclipseProject(String userName, File inputZipFile, int buildOption) throws IOException {
+    outputDir = Files.createTempDir();
+    // We call outputDir.deleteOnExit() here, in case build server is killed
+    // before cleanUp
+    // executes. However, it is likely that the directory won't be empty and
+    // therefore, won't
+    // actually be deleted. That's only if the build server is killed (via
+    // ctrl+c) while a build
+    // is happening, so we should be careful about that.
+    outputDir.deleteOnExit();
+    Result buildResult = projectBuilder.buildEclipseProject(userName,inputZipFile, outputDir, buildOption);
+    String buildOutput = buildResult.getOutput();
+    LOG.info("Build output: " + buildOutput);
+    String buildError = buildResult.getError();
+    LOG.info("Build error output: " + buildError);
+    
+      outputEclipseZip = projectBuilder.getOutputEclipseZip();
+      
+      if (outputEclipseZip != null) {
+        outputEclipseZip.deleteOnExit();  // In case build server is killed before cleanUp executes.
+      }   
+    checkMemory();
+    return buildResult;
+  }  
 
   private void cleanUp() {
     if (inputZip != null) {

@@ -15,8 +15,8 @@ public final class GitBuildId {
 
   // The following values are set during the ant build.
   public static final String GIT_BUILD_VERSION = "fatal: No names found, cannot describe anything.";
-  public static final String GIT_BUILD_FINGERPRINT = "ad0290a30b18a80c40d5e191ae59cd5635af60f9";
-  public static final String ANT_BUILD_DATE = "February 19 2015";
+  public static final String GIT_BUILD_FINGERPRINT = "feb9aa7b50ef53b36835c53e87c90f2282098357";
+  public static final String ANT_BUILD_DATE = "February 20 2015";
   public static final String ACRA_URI = "${acra.uri}";
 
   private GitBuildId() {
